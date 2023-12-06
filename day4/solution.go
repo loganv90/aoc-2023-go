@@ -9,9 +9,10 @@ import (
 )
 
 func main() {
-    inputFilename := "scratchcards_input"
-    part1(inputFilename)
-    part2(inputFilename)
+    part1("input1")
+    part1("input")
+    part2("input1")
+    part2("input")
 }
 
 func part1(inputFilename string) {

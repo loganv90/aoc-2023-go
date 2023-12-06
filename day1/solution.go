@@ -8,9 +8,10 @@ import (
 )
 
 func main() {
-    inputFilename := "trebuchet_input"
-    part1(inputFilename)
-    part2(inputFilename)
+    part1("input1")
+    part1("input")
+    part2("input2")
+    part2("input")
 }
 
 func part1(inputFilename string) {
@@ -46,7 +47,7 @@ func part1(inputFilename string) {
 
     readFile.Close()
 
-    fmt.Println("Solution", res)
+    fmt.Println("solution", res)
 }
 
 func part2(inputFilename string) {
@@ -112,6 +113,6 @@ func part2(inputFilename string) {
 
     readFile.Close()
 
-    fmt.Println("Solution", res)
+    fmt.Println("solution", res)
 }
 

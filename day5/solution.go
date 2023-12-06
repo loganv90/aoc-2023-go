@@ -9,12 +9,10 @@ import (
 )
 
 func main() {
-    inputFilename := "seed_input_1"
-    part1(inputFilename)
-    part2(inputFilename)
-    inputFilename = "seed_input"
-    part1(inputFilename)
-    part2(inputFilename)
+    part1("input1")
+    part1("input")
+    part2("input1")
+    part2("input")
 }
 
 func part1(inputFilename string) {
@@ -74,7 +72,7 @@ func part1(inputFilename string) {
     }
 
     readFile.Close()
-    fmt.Println("Solution", res)
+    fmt.Println("solution", res)
 }
 
 type Range struct {
@@ -158,7 +156,7 @@ func part2(inputFilename string) {
 
         for j := 0; j < len(seeds); j++ {
             if seeds[j].start <= current && seeds[j].start + seeds[j].length > current {
-                fmt.Println("Solution", i)
+                fmt.Println("solution", i)
                 return
             }
         }
