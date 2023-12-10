@@ -1,0 +1,200 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+    "slices"
+)
+
+func main() {
+    part1("input1")
+    part1("input2")
+    part1("input3")
+    part1("input4")
+    part1("input")
+    part2("input1")
+}
+
+func getLines(inputFilename string) []string {
+    text, err := os.ReadFile(inputFilename)
+    if err != nil { panic(err) }
+
+    return strings.Split(string(text), "\n")
+}
+
+type Direction struct {
+    dRow int
+    dCol int
+    connectors []rune
+    connectees []rune
+}
+
+var directions = []Direction{
+    {dRow: -1, dCol: 0, connectors: []rune{'|', 'F', '7'}, connectees: []rune{'|', 'J', 'L'}},
+    {dRow: 1, dCol: 0, connectors: []rune{'|', 'L', 'J'}, connectees: []rune{'|', 'F', '7'}},
+    {dRow: 0, dCol: -1, connectors: []rune{'-', 'F', 'L'}, connectees: []rune{'-', 'J', '7'}},
+    {dRow: 0, dCol: 1, connectors: []rune{'-', 'J', '7'}, connectees: []rune{'-', 'F', 'L'}},
+}
+
+func part1(inputFilename string) {
+    lines := getLines(inputFilename)
+
+    startRow := 0
+    startCol := 0
+    pipes := [][]rune{}
+    for r, line := range lines {
+        if len(line) == 0 { continue }
+        
+        row := []rune{}
+        for c, char := range line {
+            if char == 'S' {
+                startRow = r
+                startCol = c
+            }
+            row = append(row, char)
+        }
+        
+        pipes = append(pipes, row)
+    }
+
+    res := pipeLength(pipes, startRow, startCol, startRow, startCol)
+    if res % 2 != 0 { panic("odd") }
+    fmt.Println("solution", res/2)
+}
+
+func pipeLength(pipes [][]rune, row int, col int, prevRow int, prevCol int) int {
+    var currChar rune = pipes[row][col]
+    var nextChar rune
+    var nextRow int
+    var nextCol int
+
+    for _, dir := range directions {
+        if !slices.Contains(dir.connectees, currChar) && currChar != 'S' { continue }
+
+        nextRow = row + dir.dRow
+        nextCol = col + dir.dCol
+
+        if nextRow == prevRow && nextCol == prevCol { continue }
+        if nextRow < 0 || nextRow >= len(pipes) { continue }
+        if nextCol < 0 || nextCol >= len(pipes[nextRow]) { continue }
+
+        nextChar = pipes[nextRow][nextCol]
+
+        if !slices.Contains(dir.connectors, nextChar) && nextChar != 'S' { continue }
+
+        break
+    }
+
+    if nextChar == 'S' {
+        return 1
+    }
+
+    return 1 + pipeLength(pipes, nextRow, nextCol, row, col)
+}
+
+type Point struct {
+    row int
+    col int
+}
+
+type Location struct {
+    top bool
+    left bool
+}
+
+func part2(inputFilename string) {
+    lines := getLines(inputFilename)
+
+    startRow := 0
+    startCol := 0
+    pipes := [][]rune{}
+    for r, line := range lines {
+        if len(line) == 0 { continue }
+        
+        row := []rune{}
+        for c, char := range line {
+            if char == 'S' {
+                startRow = r
+                startCol = c
+            }
+            row = append(row, char)
+        }
+        
+        pipes = append(pipes, row)
+    }
+
+    pipeMap := map[Point]bool{}
+    pipeFind(pipes, startRow, startCol, startRow, startCol, pipeMap)
+    convertToPipe(pipes, startRow, startCol, pipeMap)
+
+    res := 0
+    fmt.Println("solution", res/2)
+}
+
+func pipeFind(pipes [][]rune, row int, col int, prevRow int, prevCol int, pipeMap map[Point]bool) {
+    var currChar rune = pipes[row][col]
+    var nextChar rune
+    var nextRow int
+    var nextCol int
+
+    pipeMap[Point{row, col}] = true
+
+    for _, dir := range directions {
+        if !slices.Contains(dir.connectees, currChar) && currChar != 'S' { continue }
+
+        nextRow = row + dir.dRow
+        nextCol = col + dir.dCol
+
+        if nextRow == prevRow && nextCol == prevCol { continue }
+        if nextRow < 0 || nextRow >= len(pipes) { continue }
+        if nextCol < 0 || nextCol >= len(pipes[nextRow]) { continue }
+
+        nextChar = pipes[nextRow][nextCol]
+
+        if !slices.Contains(dir.connectors, nextChar) && nextChar != 'S' { continue }
+
+        break
+    }
+
+    if nextChar == 'S' {
+        return 
+    }
+
+    pipeFind(pipes, nextRow, nextCol, row, col, pipeMap)
+}
+
+func convertToPipe(pipes [][]rune, row int, col int, pipeMap map[Point]bool) {
+    up := false
+    down := false
+    left := false
+    right := false
+
+    for _, dir := range directions {
+        nextRow := row + dir.dRow
+        nextCol := col + dir.dCol
+
+        if _, ok := pipeMap[Point{nextRow, nextCol}]; !ok { continue }
+        if !slices.Contains(dir.connectors, pipes[nextRow][nextCol]) { continue }
+
+        if dir.dRow == -1 { up = true }
+        if dir.dRow == 1 { down = true }
+        if dir.dCol == -1 { left = true }
+        if dir.dCol == 1 { right = true }
+    }
+
+    if up && left {
+        pipes[row][col] = 'L'
+    } else if up && right {
+        pipes[row][col] = 'J'
+    } else if down && left {
+        pipes[row][col] = '7'
+    } else if down && right {
+        pipes[row][col] = 'F'
+    } else if up && down {
+        pipes[row][col] = '|'
+    } else if left && right {
+        pipes[row][col] = '-'
+    }
+}
+
