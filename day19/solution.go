@@ -11,6 +11,8 @@ import (
 func main() {
     part1("input1")
     part1("input")
+    part2("input1")
+    part2("input")
 }
 
 func getLines(inputFilename string) []string {
@@ -49,7 +51,7 @@ func inputToFiltersAndParts(lines []string) (map[string][]*Filter, []map[string]
 
             if len(filterStringSplit) < 2 {
                 filter := &Filter{
-                    name: "",
+                    name: "-",
                     value: 0,
                     less: false,
                     success: filterString,
@@ -151,6 +153,85 @@ func part1(inputFilename string) {
         }
     }
 
+    fmt.Println("solution", res)
+}
+
+type Range struct {
+    min int
+    max int
+}
+
+func getCombinationsForRangeMap(rangeMap map[string]*Range) int {
+    combinations := 1
+    for _, r := range rangeMap {
+        if r.min <= r.max {
+            combinations *= r.max - r.min + 1
+        } else {
+            return 0
+        }
+    }
+    return combinations
+}
+
+func copyRangeMap(rangeMap map[string]*Range) map[string]*Range {
+    newRangeMap := map[string]*Range{}
+    for k, v := range rangeMap {
+        newRangeMap[k] = &Range{min: v.min, max: v.max}
+    }
+    return newRangeMap
+}
+
+func dfs(filterListMap map[string][]*Filter, rangeMap map[string]*Range, currentName string) int {
+    filterList, ok := filterListMap[currentName]
+    if !ok {
+        if currentName == "A" {
+            return getCombinationsForRangeMap(rangeMap)
+        } else if currentName == "R" {
+            return 0
+        } else {
+            panic("unknown end string")
+        }
+    }
+
+    res := 0
+    for _, filter := range filterList {
+        _, ok := rangeMap[filter.name]
+        if !ok {
+            newRangeMap := copyRangeMap(rangeMap)
+            res += dfs(filterListMap, newRangeMap, filter.success)
+        } else if filter.less {
+            underRange := copyRangeMap(rangeMap)
+            underRange[filter.name].max = min(underRange[filter.name].max, filter.value - 1)
+            res += dfs(filterListMap, underRange, filter.success)
+
+            rangeMap[filter.name].min = max(rangeMap[filter.name].min, filter.value)
+        } else {
+            overRange := copyRangeMap(rangeMap)
+            overRange[filter.name].min = max(overRange[filter.name].min, filter.value + 1)
+            res += dfs(filterListMap, overRange, filter.success)
+
+            rangeMap[filter.name].max = min(rangeMap[filter.name].max, filter.value)
+        }
+    }
+    return res
+}
+
+func getCombinationsForFilterListMap(filterListMap map[string][]*Filter) int {
+    rangeMap := map[string]*Range{}
+    rangeMap["x"] = &Range{min: 1, max: 4000}
+    rangeMap["m"] = &Range{min: 1, max: 4000}
+    rangeMap["a"] = &Range{min: 1, max: 4000}
+    rangeMap["s"] = &Range{min: 1, max: 4000}
+    startingName := "in"
+
+    return dfs(filterListMap, rangeMap, startingName)
+}
+
+func part2(inputFilename string) {
+    lines := getLines(inputFilename)
+    filterListMap, _ := inputToFiltersAndParts(lines)
+
+    res := getCombinationsForFilterListMap(filterListMap)
     fmt.Println("solution", res)
 }
 
