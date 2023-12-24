@@ -1,0 +1,16 @@
+&kj -> rx
+&ln -> kj
+&dr -> kj
+&zx -> kj
+&vn -> kj
+%a1 -> ln
+%b1 -> dr
+%b2 -> b1 
+%c1 -> zx
+%c2 -> c1 
+%c3 -> c2
+%d1 -> vn
+%d2 -> d1
+%d3 -> d2
+%d4 -> d3
+broadcaster -> a1, b2, c3, d4

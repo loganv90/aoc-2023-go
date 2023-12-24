@@ -10,6 +10,8 @@ func main() {
     part1("input1")
     part1("input2")
     part1("input")
+    part2("input3")
+    part2("input")
 }
 
 func getLines(inputFilename string) []string {
@@ -111,6 +113,46 @@ func part1(inputFilename string) {
 
     modules := make(map[string]Module)
     queue := make(chan Signal, 100)
+    createModules(lines, modules, queue)
+
+    lowCount := 0
+    highCount := 0
+    for i := 0; i < 1000; i++ {
+        l, h := pressButton(queue, modules)
+        lowCount += l
+        highCount += h
+    }
+    fmt.Println("solution", lowCount * highCount)
+}
+
+func pressButton(queue chan Signal, modules map[string]Module) (int, int) {
+    queue <- Signal{"broadcaster", "", false}
+    endLoop := false
+    lowCount := 0
+    highCount := 0
+    for !endLoop {
+        select {
+        case x, ok := <-queue:
+            if !ok {
+                panic("channel closed")
+            }
+            if x.high {
+                highCount++
+            } else {
+                lowCount++
+            }
+            if _, ok := modules[x.receiver]; ok {
+                modules[x.receiver].receive(x)
+            }
+        default:
+            endLoop = true
+        }
+    }
+
+    return lowCount, highCount
+}
+
+func createModules(lines []string, modules map[string]Module, queue chan Signal) {
     for _, line := range lines {
         if len(line) <= 0 {
             continue
@@ -147,42 +189,6 @@ func part1(inputFilename string) {
             }
         }
     }
-
-    lowCount := 0
-    highCount := 0
-    for i := 0; i < 1000; i++ {
-        l, h := pressButton(queue, modules)
-        lowCount += l
-        highCount += h
-    }
-    fmt.Println("solution", lowCount, highCount, lowCount * highCount)
-}
-
-func pressButton(queue chan Signal, modules map[string]Module) (int, int) {
-    queue <- Signal{"broadcaster", "", false}
-    endLoop := false
-    lowCount := 0
-    highCount := 0
-    for !endLoop {
-        select {
-        case x, ok := <-queue:
-            if !ok {
-                panic("channel closed")
-            }
-            if x.high {
-                highCount++
-            } else {
-                lowCount++
-            }
-            if _, ok := modules[x.receiver]; ok {
-                modules[x.receiver].receive(x)
-            }
-        default:
-            endLoop = true
-        }
-    }
-
-    return lowCount, highCount
 }
 
 func printModules(modules map[string]Module) {
@@ -200,5 +206,112 @@ func printModules(modules map[string]Module) {
         }
         fmt.Println()
     }
+}
+
+func part2(inputFilename string) {
+    lines := getLines(inputFilename)
+
+    modules := make(map[string]Module)
+    queue := make(chan Signal, 100)
+    createModules(lines, modules, queue)
+
+    watches := map[string][]int{}
+    rxInput := ""
+    for name, module := range modules {
+        for _, output := range module.getOutputs() {
+            if output == "rx" {
+                _, ok := module.(*Conjunction)
+                if !ok {
+                    panic("rxInput")
+                }
+                rxInput = name
+            }
+        }
+    }
+    for name, module := range modules {
+        for _, output := range module.getOutputs() {
+            if output == rxInput {
+                _, ok := module.(*Conjunction)
+                if !ok {
+                    panic("watches")
+                }
+                watches[name] = []int{}
+            }
+        }
+    }
+
+    for i := 0; i < 10000; i++ {
+        pressButton2(queue, modules, watches, i)
+    }
+
+    loops := []Loop{}
+    for _, list := range watches {
+        start := list[0]
+        length := list[1] - list[0]
+        loops = append(loops, Loop{start, length})
+    }
+
+    reduced := loops[0]
+    for _, loop := range loops[1:] {
+        reduced = reduce(reduced, loop)
+    }
+
+    fmt.Println("solution", reduced.start)
+}
+
+type Loop struct {
+    start int
+    length int
+}
+
+func GCD(a int, b int) int {
+    for b != 0 {
+        a, b = b, a % b
+    }
+
+    return a
+}
+
+func LCM(a int, b int) int {
+    return a * b / GCD(a, b)
+}
+
+func reduce(loop1 Loop, loop2 Loop) Loop {
+    return Loop{LCM(loop1.start, loop2.start), LCM(loop1.length, loop2.length)}
+}
+
+func pressButton2(queue chan Signal, modules map[string]Module, watches map[string][]int, i int) (int, int) {
+    queue <- Signal{"broadcaster", "", false}
+    endLoop := false
+    lowCount := 0
+    highCount := 0
+    for !endLoop {
+        select {
+        case x, ok := <-queue:
+            if !ok {
+                panic("channel closed")
+            }
+            if x.high {
+                highCount++
+            } else {
+                lowCount++
+            }
+            if x.high {
+                for name, list := range watches {
+                    if name == x.sender {
+                        list = append(list, i+1)
+                        watches[name] = list
+                    }
+                }
+            }
+            if _, ok := modules[x.receiver]; ok {
+                modules[x.receiver].receive(x)
+            }
+        default:
+            endLoop = true
+        }
+    }
+
+    return lowCount, highCount
 }
 
