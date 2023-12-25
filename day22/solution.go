@@ -11,6 +11,8 @@ import (
 func main() {
     part1("input1")
     part1("input")
+    part2("input1")
+    part2("input")
 }
 
 func getLines(inputFilename string) []string {
@@ -102,10 +104,7 @@ func linesToBricks(lines []string) ([]*Brick, int, int) {
     return grid, xMax, yMax
 }
 
-func part1(inputFilename string) {
-    lines := getLines(inputFilename)
-    bricks, xMaxGrid, yMaxGrid := linesToBricks(lines)
-
+func createMaxes(xMaxGrid int, yMaxGrid int) [][]int {
     maxes := [][]int{}
     for y := 0; y <= yMaxGrid; y++ {
         row := []int{}
@@ -115,6 +114,10 @@ func part1(inputFilename string) {
         maxes = append(maxes, row)
     }
 
+    return maxes
+}
+
+func createGrid(xMaxGrid int, yMaxGrid int) [][][]*Brick {
     grid := [][][]*Brick{}
     for z := 0; z <= 1000; z++ {
         layer := [][]*Brick{}
@@ -128,6 +131,10 @@ func part1(inputFilename string) {
         grid = append(grid, layer)
     }
 
+    return grid
+}
+
+func createMaps(bricks []*Brick, maxes [][]int, grid [][][]*Brick) (map[*Brick]map[*Brick]bool, map[*Brick]map[*Brick]bool) {
     brickHeap := &BrickHeap{}
     for _, brick := range bricks {
         heap.Push(brickHeap, brick)
@@ -179,6 +186,16 @@ func part1(inputFilename string) {
         }
     }
 
+    return supportingBricksToSupportedBricks, supportedBricksToSupportingBricks
+}
+
+func part1(inputFilename string) {
+    lines := getLines(inputFilename)
+    bricks, xMaxGrid, yMaxGrid := linesToBricks(lines)
+    maxes := createMaxes(xMaxGrid, yMaxGrid)
+    grid := createGrid(xMaxGrid, yMaxGrid)
+    supportingBricksToSupportedBricks, supportedBricksToSupportingBricks := createMaps(bricks, maxes, grid)
+
     count := 0
     for _, brick := range bricks {
         supportedBricks := supportingBricksToSupportedBricks[brick]
@@ -195,6 +212,64 @@ func part1(inputFilename string) {
         if allSupported {
             count++
         }
+    }
+
+    fmt.Println("solution", count)
+}
+
+func countSupportingAndNotVisited(supportingBricks map[*Brick]bool, visitedBricks map[*Brick]bool) int {
+    count := 0
+    for supportingBrick := range supportingBricks {
+        if _, ok := visitedBricks[supportingBrick]; !ok {
+            count++
+        }
+    }
+
+    return count
+}
+
+func bfs(
+    brick *Brick,
+    supportingBricksToSupportedBricks map[*Brick]map[*Brick]bool,
+    supportedBricksToSupportingBricks map[*Brick]map[*Brick]bool,
+) int {
+    count := 0
+    visitedBricks := map[*Brick]bool{}
+    brickHeap := &BrickHeap{}
+    heap.Push(brickHeap, brick)
+
+    for brickHeap.Len() > 0 {
+        currentBrick := heap.Pop(brickHeap).(*Brick)
+        visitedBricks[currentBrick] = true
+
+        supportedBricks := supportingBricksToSupportedBricks[currentBrick]
+        for supportedBrick := range supportedBricks {
+            supportingBricks := supportedBricksToSupportingBricks[supportedBrick]
+
+            if countSupportingAndNotVisited(supportingBricks, visitedBricks) <= 0 {
+                count++
+                heap.Push(brickHeap, supportedBrick)
+            }
+        }
+    }
+
+    return count
+}
+
+func part2(inputFilename string) {
+    lines := getLines(inputFilename)
+    bricks, xMaxGrid, yMaxGrid := linesToBricks(lines)
+    maxes := createMaxes(xMaxGrid, yMaxGrid)
+    grid := createGrid(xMaxGrid, yMaxGrid)
+    supportingBricksToSupportedBricks, supportedBricksToSupportingBricks := createMaps(bricks, maxes, grid)
+
+    count := 0
+    for _, brick := range bricks {
+        count += bfs(
+            brick,
+            supportingBricksToSupportedBricks,
+            supportedBricksToSupportingBricks,
+        )
     }
 
     fmt.Println("solution", count)
